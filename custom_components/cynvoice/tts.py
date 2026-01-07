@@ -17,6 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_API_URL,
@@ -84,7 +85,9 @@ class CynVoiceEntity(TextToSpeechEntity):
              self._attr_unique_id = "cynvoice_yaml"
 
         # Initialize engine
+        session = async_get_clientsession(hass)
         self._engine = CynVoiceEngine(
+            session=session,
             url=self._get_option_or_config(CONF_API_URL, DEFAULT_URL),
             voice=self._get_option_or_config(CONF_VOICE, DEFAULT_VOICE),
             temperature=self._get_option_or_config(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
@@ -129,28 +132,18 @@ class CynVoiceEntity(TextToSpeechEntity):
         streaming = options.get(CONF_STREAMING, self._engine._streaming)
 
         try:
-            loop = asyncio.get_running_loop()
-            audio_response = await loop.run_in_executor(
-                None,
-                partial(
-                    self._engine.get_tts,
-                    text=message,
-                    voice=voice,
-                    temperature=temperature,
-                    repetition_penalty=repetition_penalty,
-                    streaming=streaming,
-                    stream=False # Regular request
-                )
+            audio_response = await self._engine.async_get_tts(
+                text=message,
+                voice=voice,
+                temperature=temperature,
+                repetition_penalty=repetition_penalty,
+                streaming=streaming
             )
             
             if not audio_response:
                 return None
                 
-            if hasattr(audio_response, 'read_all'):
-                data = audio_response.read_all()
-            else:
-                data = audio_response.content
-
+            data = audio_response.content
             return "wav", data
 
         except Exception as e:
