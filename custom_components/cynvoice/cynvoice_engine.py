@@ -78,3 +78,52 @@ class CynVoiceEngine:
         except Exception as e:
             _LOGGER.error("Error fetching TTS: %s", e)
             raise HomeAssistantError(f"Error fetching TTS: {e}") from e
+
+    async def async_stream_tts(
+        self,
+        text: str,
+        voice: str | None = None,
+        temperature: float | None = None,
+        repetition_penalty: float | None = None,
+    ):
+        """Async streaming TTS request returning an aiohttp response object.
+
+        Yields chunks from CynVoice server with streaming enabled.
+        """
+
+        voice = voice if voice is not None else self._voice
+        temperature = temperature if temperature is not None else self._temperature
+        repetition_penalty = repetition_penalty if repetition_penalty is not None else self._repetition_penalty
+
+        headers = {
+            "Content-Type": "application/json",
+            "accept": "*/*"
+        }
+
+        payload = {
+            "text": text,
+            "chunk_length": 200,
+            "format": "wav",
+            "references": [],
+            "reference_id": voice,
+            "seed": None,
+            "use_memory_cache": "on",
+            "normalize": True,
+            "streaming": True,
+            "max_new_tokens": 1024,
+            "top_p": 0.8,
+            "repetition_penalty": repetition_penalty,
+            "temperature": temperature
+        }
+
+        _LOGGER.debug("CynVoice API streaming request: %s", payload)
+
+        timeout = aiohttp.ClientTimeout(total=60)
+        response = await self._session.post(
+            self._url,
+            json=payload,
+            headers=headers,
+            timeout=timeout
+        )
+        response.raise_for_status()
+        return response

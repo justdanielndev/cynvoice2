@@ -11,6 +11,8 @@ import voluptuous as vol
 from homeassistant.components.tts import (
     TextToSpeechEntity,
     PLATFORM_SCHEMA,
+    TTSAudioRequest,
+    TTSAudioResponse,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -18,6 +20,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.components.http import async_handle
+from yarl import URL
 
 from .const import (
     CONF_API_URL,
@@ -131,21 +135,79 @@ class CynVoiceEntity(TextToSpeechEntity):
         repetition_penalty = options.get(CONF_REPETITION_PENALTY, self._engine._repetition_penalty)
         streaming = options.get(CONF_STREAMING, self._engine._streaming)
 
+        # If streaming is requested, prefer streaming URL via our proxy view
+        if streaming:
+            try:
+                # Build streaming URL for clients: /api/cynvoice/tts_stream?text=...
+                base = "/api/cynvoice/tts_stream"
+                # Note: HA will not use this URL directly in TTS service, so we
+                # fall back to non-streaming bytes for compatibility.
+                # Still log the URL so users can use media_player.play_media.
+                from urllib.parse import quote
+                q = (
+                    f"text={quote(message)}&voice={quote(voice)}&"
+                    f"temperature={temperature}&repetition_penalty={repetition_penalty}&"
+                    f"api_url={quote(self._get_option_or_config(CONF_API_URL, DEFAULT_URL))}"
+                )
+                stream_url = f"{base}?{q}"
+                _LOGGER.info("CynVoice streaming URL: %s", stream_url)
+            except Exception:
+                pass
+
+        # Fall back to non-streaming full download to satisfy HA TTS service
         try:
             audio_response = await self._engine.async_get_tts(
                 text=message,
                 voice=voice,
                 temperature=temperature,
                 repetition_penalty=repetition_penalty,
-                streaming=streaming
+                streaming=False,
             )
-            
             if not audio_response:
                 return None
-                
             data = audio_response.content
             return "wav", data
-
         except Exception as e:
             _LOGGER.error("Error generating TTS: %s", e)
             return None
+
+    async def async_stream_tts_audio(
+        self, request: TTSAudioRequest
+    ) -> TTSAudioResponse | None:
+        """Stream TTS audio for Assist Pipeline."""
+        # 1. Accumulate the full text from the generator
+        # CynVoice currently requires full text context
+        text_parts = []
+        async for chunk in request.message_gen:
+            text_parts.append(chunk)
+        message = "".join(text_parts)
+
+        # 2. Extract options
+        options = request.options or {}
+        voice = options.get(CONF_VOICE, self._engine._voice)
+        temperature = options.get(CONF_TEMPERATURE, self._engine._temperature)
+        repetition_penalty = options.get(CONF_REPETITION_PENALTY, self._engine._repetition_penalty)
+
+        # 3. Stream from engine
+        # We define a generator that yields bytes from the upstream response
+        async def audio_data_gen():
+            upstream_resp = None
+            try:
+                upstream_resp = await self._engine.async_stream_tts(
+                    text=message,
+                    voice=voice,
+                    temperature=temperature,
+                    repetition_penalty=repetition_penalty,
+                )
+                async for chunk in upstream_resp.content.iter_chunked(4096):
+                    yield chunk
+            except Exception as err:
+                _LOGGER.error("Streaming failed: %s", err)
+            finally:
+                if upstream_resp:
+                    upstream_resp.close()
+
+        return TTSAudioResponse(
+            extension="wav",
+            data_gen=audio_data_gen(),
+        )
