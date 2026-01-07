@@ -3,7 +3,7 @@
 DOMAIN = "cynvoice"
 DEFAULT_NAME = "CynVoice"
 
-CONF_URL = "url"
+CONF_API_URL = "url"
 DEFAULT_URL = "http://34.139.23.226/v1/tts"
 
 CONF_VOICE = "voice"

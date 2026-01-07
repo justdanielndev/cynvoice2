@@ -21,7 +21,7 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
-    CONF_URL,
+    CONF_API_URL,
     CONF_VOICE,
     CONF_TEMPERATURE,
     CONF_REPETITION_PENALTY,
@@ -41,7 +41,7 @@ SUPPORTED_LANGUAGES = ["en"]
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Required(CONF_URL, default=DEFAULT_URL): cv.string,
+        vol.Required(CONF_API_URL, default=DEFAULT_URL): cv.string,
         vol.Optional(CONF_VOICE, default=DEFAULT_VOICE): cv.string,
         vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): cv.float,
         vol.Optional(CONF_REPETITION_PENALTY, default=DEFAULT_REPETITION_PENALTY): cv.float,
@@ -87,7 +87,7 @@ class CynVoiceEntity(TextToSpeechEntity):
 
         # Initialize engine
         self._engine = CynVoiceEngine(
-            url=self._get_option_or_config(CONF_URL, DEFAULT_URL),
+            url=self._get_option_or_config(CONF_API_URL, DEFAULT_URL),
             voice=self._get_option_or_config(CONF_VOICE, DEFAULT_VOICE),
             temperature=self._get_option_or_config(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
             repetition_penalty=self._get_option_or_config(CONF_REPETITION_PENALTY, DEFAULT_REPETITION_PENALTY),

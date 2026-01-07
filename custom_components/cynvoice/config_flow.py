@@ -7,13 +7,13 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
-    CONF_URL,
+    CONF_API_URL,
     CONF_VOICE,
     CONF_TEMPERATURE,
     CONF_REPETITION_PENALTY,
@@ -30,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_URL, default=DEFAULT_URL): str,
+        vol.Required(CONF_API_URL, default=DEFAULT_URL): str,
         vol.Required(CONF_VOICE, default=DEFAULT_VOICE): str,
     }
 )
