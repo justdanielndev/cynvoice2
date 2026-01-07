@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, AsyncGenerator
+from typing import Any
 from functools import partial
 import asyncio
 
@@ -10,8 +10,6 @@ import voluptuous as vol
 
 from homeassistant.components.tts import (
     TextToSpeechEntity,
-    TTSAudioRequest,
-    TTSAudioResponse,
     PLATFORM_SCHEMA,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -158,33 +156,3 @@ class CynVoiceEntity(TextToSpeechEntity):
         except Exception as e:
             _LOGGER.error("Error generating TTS: %s", e)
             return None
-
-    async def async_stream_tts_audio(
-        self,
-        request: TTSAudioRequest
-    ) -> TTSAudioResponse:
-        """Stream TTS audio."""
-        options = request.options or {}
-        
-        # Accumulate text (simplified for now as most APIs need full text for context)
-        full_text = ""
-        async for chunk in request.message_gen:
-            full_text += chunk
-
-        voice = options.get(CONF_VOICE, self._engine._voice)
-        temperature = options.get(CONF_TEMPERATURE, self._engine._temperature)
-        repetition_penalty = options.get(CONF_REPETITION_PENALTY, self._engine._repetition_penalty)
-
-        async def audio_generator() -> AsyncGenerator[bytes, None]:
-            async for chunk in self._engine.async_get_tts_stream(
-                text=full_text,
-                voice=voice,
-                temperature=temperature,
-                repetition_penalty=repetition_penalty,
-            ):
-                yield chunk
-
-        return TTSAudioResponse(
-            extension="wav",
-            data_gen=audio_generator()
-        )
