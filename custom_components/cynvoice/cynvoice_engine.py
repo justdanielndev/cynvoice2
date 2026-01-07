@@ -2,7 +2,7 @@
 import json
 import logging
 import aiohttp
-from typing import Optional, Callable, Union
+from typing import Optional, Callable, Union, AsyncGenerator
 
 from homeassistant.exceptions import HomeAssistantError
 
@@ -85,8 +85,8 @@ class CynVoiceEngine:
         voice: str | None = None,
         temperature: float | None = None,
         repetition_penalty: float | None = None,
-    ):
-        """Async streaming TTS request returning an aiohttp response object.
+    ) -> AsyncGenerator[bytes, None]:
+        """Async streaming TTS request yielding bytes.
 
         Yields chunks from CynVoice server with streaming enabled.
         """
@@ -118,12 +118,18 @@ class CynVoiceEngine:
 
         _LOGGER.debug("CynVoice API streaming request: %s", payload)
 
-        timeout = aiohttp.ClientTimeout(total=60)
-        response = await self._session.post(
-            self._url,
-            json=payload,
-            headers=headers,
-            timeout=timeout
-        )
-        response.raise_for_status()
-        return response
+        try:
+            timeout = aiohttp.ClientTimeout(total=60, connect=10)
+            async with self._session.post(
+                self._url,
+                json=payload,
+                headers=headers,
+                timeout=timeout
+            ) as response:
+                response.raise_for_status()
+                async for chunk in response.content.iter_chunked(4096):
+                    yield chunk
+
+        except Exception as e:
+            _LOGGER.error("Streaming error: %s", e)
+            raise HomeAssistantError(f"Streaming error: {e}") from e

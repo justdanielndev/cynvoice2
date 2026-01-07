@@ -142,20 +142,16 @@ class CynVoiceStreamView(HomeAssistantView):
         await resp.prepare(request)
 
         try:
-            upstream = await engine.async_stream_tts(
+            # 8KB chunks
+            async for chunk in engine.async_stream_tts(
                 text=text,
                 voice=voice,
                 temperature=temperature,
                 repetition_penalty=repetition_penalty,
-            )
-            try:
-                # 8KB chunks
-                async for chunk in upstream.content.iter_chunked(8192):
-                    if chunk:
-                        await resp.write(chunk)
-                await resp.write_eof()
-            finally:
-                upstream.close()
+            ):
+                if chunk:
+                    await resp.write(chunk)
+            await resp.write_eof()
         except Exception as err:
             _LOGGER.error("CynVoice streaming error: %s", err)
             return web.Response(status=500, text="Streaming error")

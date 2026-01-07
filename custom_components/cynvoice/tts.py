@@ -41,16 +41,6 @@ _LOGGER = logging.getLogger(__name__)
 
 SUPPORTED_LANGUAGES = ["en"]
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {
-        vol.Required(CONF_API_URL, default=DEFAULT_URL): cv.string,
-        vol.Optional(CONF_VOICE, default=DEFAULT_VOICE): cv.string,
-        vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.Coerce(float),
-        vol.Optional(CONF_REPETITION_PENALTY, default=DEFAULT_REPETITION_PENALTY): vol.Coerce(float),
-        vol.Optional(CONF_STREAMING, default=DEFAULT_STREAMING): cv.boolean,
-    }
-)
-
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -58,15 +48,6 @@ async def async_setup_entry(
 ) -> None:
     """Set up CynVoice TTS from a config entry."""
     async_add_entities([CynVoiceEntity(hass, config_entry)])
-
-async def async_setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    async_add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
-) -> None:
-    """Set up the CynVoice TTS platform."""
-    async_add_entities([CynVoiceEntity(hass, config)])
 
 
 class CynVoiceEntity(TextToSpeechEntity):
@@ -190,21 +171,16 @@ class CynVoiceEntity(TextToSpeechEntity):
         # 3. Stream from engine
         # We define a generator that yields bytes from the upstream response
         async def audio_data_gen():
-            upstream_resp = None
             try:
-                upstream_resp = await self._engine.async_stream_tts(
+                async for chunk in self._engine.async_stream_tts(
                     text=message,
                     voice=voice,
                     temperature=temperature,
                     repetition_penalty=repetition_penalty,
-                )
-                async for chunk in upstream_resp.content.iter_chunked(4096):
+                ):
                     yield chunk
             except Exception as err:
                 _LOGGER.error("Streaming failed: %s", err)
-            finally:
-                if upstream_resp:
-                    upstream_resp.close()
 
         return TTSAudioResponse(
             extension="wav",
