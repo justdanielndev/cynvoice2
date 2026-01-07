@@ -72,7 +72,9 @@ class CynVoiceEngine:
         # stream parameter is from tts.py logic, streaming parameter is for API payload
         # If tts.py asks for stream=True, we should probably set payload streaming=True too
         if stream:
-            streaming = True
+            # Note: We are ignoring the 'stream' request param from HA because
+            # we are forcing standard download for robustness, as requested.
+            pass
 
         headers = {
             "Content-Type": "application/json",
@@ -88,7 +90,7 @@ class CynVoiceEngine:
             "seed": None,
             "use_memory_cache": "off",
             "normalize": True,
-            "streaming": streaming,
+            "streaming": False,
             "max_new_tokens": 1024,
             "top_p": 0.8,
             "repetition_penalty": repetition_penalty,
@@ -106,11 +108,11 @@ class CynVoiceEngine:
             )
             
             if stream:
-                resp = urlopen(req, timeout=30)
-                _LOGGER.debug("Using streaming mode")
-                return StreamingAudioResponse(resp, on_first_chunk)
+                # Fallback to standard request even if stream requested
+                with urlopen(req, timeout=60) as resp:
+                    return AudioResponse(resp.read())
             else:
-                with urlopen(req, timeout=30) as resp:
+                with urlopen(req, timeout=60) as resp:
                     return AudioResponse(resp.read())
 
         except Exception as e:
