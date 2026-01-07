@@ -1,0 +1,40 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "CynVoice Configuration",
+                "description": "Configure your CynVoice API endpoint.",
+                "data": {
+                    "url": "API URL",
+                    "voice": "Default Voice ID"
+                }
+            },
+            "init": {
+                "title": "CynVoice Options",
+                "description": "Configure advanced options.",
+                "data": {
+                    "voice": "Default Voice ID",
+                    "temperature": "Temperature (0.0-1.0)",
+                    "repetition_penalty": "Repetition Penalty",
+                    "streaming": "Enable Streaming by Default"
+                }
+            }
+        },
+        "abort": {
+            "already_configured": "Service is already configured"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "CynVoice Options",
+                "data": {
+                    "voice": "Default Voice ID",
+                    "temperature": "Temperature (0.0-1.0)",
+                    "repetition_penalty": "Repetition Penalty",
+                    "streaming": "Enable Streaming by Default"
+                }
+            }
+        }
+    }
+}

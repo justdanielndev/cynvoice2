@@ -1,0 +1,9 @@
+{
+  "domain": "cynvoice",
+  "name": "CynVoice",
+  "config_flow": true,
+  "documentation": "https://github.com/justdanielndev/cynvoice",
+  "iot_class": "cloud_polling",
+  "requirements": ["aiohttp"],
+  "version": "1.0.0"
+}
