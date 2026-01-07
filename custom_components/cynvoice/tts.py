@@ -43,8 +43,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_API_URL, default=DEFAULT_URL): cv.string,
         vol.Optional(CONF_VOICE, default=DEFAULT_VOICE): cv.string,
-        vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): cv.float,
-        vol.Optional(CONF_REPETITION_PENALTY, default=DEFAULT_REPETITION_PENALTY): cv.float,
+        vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.Coerce(float),
+        vol.Optional(CONF_REPETITION_PENALTY, default=DEFAULT_REPETITION_PENALTY): vol.Coerce(float),
         vol.Optional(CONF_STREAMING, default=DEFAULT_STREAMING): cv.boolean,
     }
 )
