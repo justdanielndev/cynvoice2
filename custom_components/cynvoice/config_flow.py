@@ -65,7 +65,7 @@ class CynVoiceOptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize HACS options flow."""
-        self.config_entry = config_entry
+        self._config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -80,25 +80,25 @@ class CynVoiceOptionsFlowHandler(config_entries.OptionsFlow):
                 {
                     vol.Required(
                         CONF_VOICE,
-                        default=self.config_entry.options.get(
-                            CONF_VOICE, self.config_entry.data.get(CONF_VOICE, DEFAULT_VOICE)
+                        default=self._config_entry.options.get(
+                            CONF_VOICE, self._config_entry.data.get(CONF_VOICE, DEFAULT_VOICE)
                         ),
                     ): str,
                     vol.Optional(
                         CONF_TEMPERATURE,
-                        default=self.config_entry.options.get(
+                        default=self._config_entry.options.get(
                             CONF_TEMPERATURE, DEFAULT_TEMPERATURE
                         ),
                     ): vol.Coerce(float),
                     vol.Optional(
                         CONF_REPETITION_PENALTY,
-                        default=self.config_entry.options.get(
+                        default=self._config_entry.options.get(
                             CONF_REPETITION_PENALTY, DEFAULT_REPETITION_PENALTY
                         ),
                     ): vol.Coerce(float),
                     vol.Optional(
                         CONF_STREAMING,
-                        default=self.config_entry.options.get(
+                        default=self._config_entry.options.get(
                             CONF_STREAMING, DEFAULT_STREAMING
                         ),
                     ): bool,
